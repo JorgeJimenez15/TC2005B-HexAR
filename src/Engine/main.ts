@@ -4,6 +4,7 @@ export default class {
 	private scene: Scene;
 	private camera: PerspectiveCamera;
 	private renderer: WebGLRenderer;
+	private session: XRSession | null;
 
 	public constructor() {
 		const { innerWidth, innerHeight, devicePixelRatio } = window;
@@ -28,8 +29,25 @@ export default class {
 		this.renderer.xr.enabled = true;
 		this.renderer.setAnimationLoop(this.update.bind(this));
 
+		// * Session
+		this.session = null;
+
 		// * Event listeners
 		window.addEventListener("resize", this.onResize.bind(this));
+	}
+
+	public async start(): Promise<void> {
+		this.session = await window.navigator.xr!.requestSession("immersive-ar", {
+			requiredFeatures: ["hit-test"],
+			optionalFeatures: ["dom-overlay"],
+		});
+
+		this.renderer.xr.setReferenceSpaceType("local");
+		await this.renderer.xr.setSession(this.session);
+	}
+
+	public async stop(): Promise<void> {
+		if (this.session) await this.session.end();
 	}
 
 	private update(timestamp: number, frame: XRFrame): void {
