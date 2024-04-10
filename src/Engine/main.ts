@@ -1,4 +1,5 @@
 import { Scene, HemisphereLight, PerspectiveCamera, RingGeometry, MeshBasicMaterial, Mesh, WebGLRenderer } from "three";
+import Overlay from "../Overlay.svelte";
 
 export default class {
 	private scene: Scene;
@@ -37,7 +38,7 @@ export default class {
 		// * XR Session
 		this.session = null;
 
-		// * Hit test
+		// * Hit Test
 		const geometry = new RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
 		const material = new MeshBasicMaterial();
 
@@ -56,13 +57,32 @@ export default class {
 	}
 
 	public async start(): Promise<void> {
+		// TODO Include all properties from this class
+		const overlay = document.createElement("div");
+		const component = new Overlay({ target: overlay });
+
+		overlay.style.display = "none";
+		document.body.appendChild(overlay);
+
 		this.session = await window.navigator.xr!.requestSession("immersive-ar", {
-			requiredFeatures: ["hit-test"],
-			optionalFeatures: ["dom-overlay"],
+			requiredFeatures: ["dom-overlay", "hit-test"],
+			optionalFeatures: [],
+			domOverlay: {
+				root: overlay,
+			},
 		});
+
+		overlay.style.display = "inline";
 
 		this.renderer.xr.setReferenceSpaceType("local");
 		await this.renderer.xr.setSession(this.session);
+
+		this.session.addEventListener("end", () => {
+			this.session = null;
+
+			component.$destroy();
+			document.body.removeChild(overlay);
+		});
 	}
 
 	public async stop(): Promise<void> {
@@ -108,6 +128,9 @@ export default class {
 	}
 
 	private onResize(): void {
+		// Can't change size while VR device is presenting
+		if (this.session) return;
+
 		const { innerWidth, innerHeight } = window;
 
 		this.camera.aspect = innerWidth / innerHeight;
