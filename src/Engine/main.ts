@@ -59,7 +59,12 @@ export default class {
 	public async start(): Promise<void> {
 		// TODO Include all properties from this class
 		const overlay = document.createElement("div");
-		const component = new Overlay({ target: overlay });
+		const component = new Overlay({
+			target: overlay,
+			props: {
+				engine: this,
+			},
+		});
 
 		overlay.style.display = "none";
 		document.body.appendChild(overlay);
