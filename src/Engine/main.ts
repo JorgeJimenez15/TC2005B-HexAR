@@ -1,4 +1,5 @@
 import { Scene, HemisphereLight, PerspectiveCamera, RingGeometry, MeshBasicMaterial, Mesh, WebGLRenderer } from "three";
+import loadOBJ from "./loaders/loadOBJ";
 import Overlay from "../Overlay.svelte";
 
 export default class {
@@ -36,6 +37,8 @@ export default class {
 		this.renderer.setAnimationLoop(this.update.bind(this));
 
 		// * XR Session
+		const controller = this.renderer.xr.getController(0);
+
 		this.session = null;
 
 		// * Hit Test
@@ -54,25 +57,41 @@ export default class {
 
 		// * Event listeners
 		window.addEventListener("resize", this.onResize.bind(this));
+		controller.addEventListener("select", async () => {
+			const object = await loadOBJ("/models/Conveyor.obj");
+
+			this.hitTest.reticle.matrix.decompose(object.position, object.quaternion, object.scale);
+			object.rotation.y = this.camera.rotation.y + Math.PI / 2; // TODO Fix this formula
+
+			this.scene.add(object);
+		});
 	}
 
 	public async start(): Promise<void> {
 		// TODO Include all properties from this class
+		const app = document.getElementById("app")!;
 		const overlay = document.createElement("div");
-		const component = new Overlay({ target: overlay });
-
-		overlay.style.display = "none";
-		document.body.appendChild(overlay);
-
-		this.session = await window.navigator.xr!.requestSession("immersive-ar", {
-			requiredFeatures: ["dom-overlay", "hit-test"],
-			optionalFeatures: [],
-			domOverlay: {
-				root: overlay,
+		const component = new Overlay({
+			target: overlay,
+			props: {
+				engine: this,
 			},
 		});
 
-		overlay.style.display = "inline";
+		// overlay.style.display = "none";
+		document.body.appendChild(overlay);
+		app.style.display = "none";
+
+		this.session = await window.navigator.xr!.requestSession("immersive-ar", {
+			requiredFeatures: ["hit-test"],
+			// Deprecated since the Quest 3 doesn't support DOM Overlay
+			// optionalFeatures: ["dom-overlay"],
+			// domOverlay: {
+			// 	root: overlay,
+			// },
+		});
+
+		// overlay.style.display = "inline";
 
 		this.renderer.xr.setReferenceSpaceType("local");
 		await this.renderer.xr.setSession(this.session);
@@ -82,6 +101,7 @@ export default class {
 
 			component.$destroy();
 			document.body.removeChild(overlay);
+			app.style.display = "inline";
 		});
 	}
 
