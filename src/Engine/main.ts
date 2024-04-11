@@ -61,7 +61,7 @@ export default class {
 			const object = await loadOBJ("/models/Conveyor.obj");
 
 			this.hitTest.reticle.matrix.decompose(object.position, object.quaternion, object.scale);
-			object.rotation.y = Math.PI / 2;
+			object.rotation.y = this.camera.rotation.y + Math.PI / 2; // TODO Fix this formula
 
 			this.scene.add(object);
 		});
@@ -69,6 +69,7 @@ export default class {
 
 	public async start(): Promise<void> {
 		// TODO Include all properties from this class
+		const app = document.getElementById("app")!;
 		const overlay = document.createElement("div");
 		const component = new Overlay({
 			target: overlay,
@@ -79,6 +80,7 @@ export default class {
 
 		// overlay.style.display = "none";
 		document.body.appendChild(overlay);
+		app.style.display = "none";
 
 		this.session = await window.navigator.xr!.requestSession("immersive-ar", {
 			requiredFeatures: ["hit-test"],
@@ -99,6 +101,7 @@ export default class {
 
 			component.$destroy();
 			document.body.removeChild(overlay);
+			app.style.display = "inline";
 		});
 	}
 
