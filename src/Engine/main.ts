@@ -3,6 +3,7 @@ import loadOBJ from "./loaders/loadOBJ";
 import Overlay from "../Overlay.svelte";
 
 export default class {
+	private projectId: number;
 	private scene: Scene;
 	private camera: PerspectiveCamera;
 	private renderer: WebGLRenderer;
@@ -13,8 +14,10 @@ export default class {
 		source: XRHitTestSource | null;
 	};
 
-	public constructor() {
+	public constructor(id: number) {
 		const { innerWidth, innerHeight, devicePixelRatio } = window;
+
+		this.projectId = id;
 
 		// * Scene
 		this.scene = new Scene();
@@ -61,14 +64,13 @@ export default class {
 			const object = await loadOBJ("/models/Conveyor.obj");
 
 			this.hitTest.reticle.matrix.decompose(object.position, object.quaternion, object.scale);
-			object.rotation.y = this.camera.rotation.y + Math.PI / 2; // TODO Fix this formula
+			object.rotation.y = this.camera.rotation.y;
 
 			this.scene.add(object);
 		});
 	}
 
 	public async start(): Promise<void> {
-		// TODO Include all properties from this class
 		const app = document.getElementById("app")!;
 		const overlay = document.createElement("div");
 		const component = new Overlay({
@@ -78,20 +80,12 @@ export default class {
 			},
 		});
 
-		// overlay.style.display = "none";
 		document.body.appendChild(overlay);
 		app.style.display = "none";
 
 		this.session = await window.navigator.xr!.requestSession("immersive-ar", {
 			requiredFeatures: ["hit-test"],
-			// Deprecated since the Quest 3 doesn't support DOM Overlay
-			// optionalFeatures: ["dom-overlay"],
-			// domOverlay: {
-			// 	root: overlay,
-			// },
 		});
-
-		// overlay.style.display = "inline";
 
 		this.renderer.xr.setReferenceSpaceType("local");
 		await this.renderer.xr.setSession(this.session);
@@ -129,6 +123,8 @@ export default class {
 	private update(timestamp: number, frame: XRFrame): void {
 		if (!frame) return;
 		if (!this.hitTest.requested) this.requestHitTest();
+
+		console.table(this.camera.rotation);
 
 		if (this.hitTest.source) {
 			const results = frame.getHitTestResults(this.hitTest.source);
