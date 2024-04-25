@@ -1,19 +1,24 @@
 <script lang="ts">
-	import Engine from "./Engine/main";
+	import Login from "./Login.svelte";
+	import Home from "./Home.svelte";
 
-	const engine = new Engine();
+	// Auth
+	import type { Credentials } from "./api";
+	import { credentials } from "./stores";
+	let auth: Credentials;
 
-	function start(): void {
-		engine.start();
-	}
+	const storage = localStorage.getItem("credentials");
+	if (storage) credentials.set(JSON.parse(storage) as Credentials);
+
+	credentials.subscribe((value) => {
+		auth = value;
+	});
 </script>
 
-<main class="m-3 space-y-4">
-	<h1 class="text-3xl text-green-500">Hello, World!</h1>
-	<p class="text-slate-900">
-		Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ipsum, ut accusantium distinctio beatae voluptates
-		officiis repellendus vitae eos! Accusamus iste quas maxime quibusdam ratione, voluptatum culpa quis quos
-		sapiente ab!
-	</p>
-	<button on:click={start} class="rounded-md bg-green-500 px-3 py-2 text-white">Start AR</button>
+<main class="h-screen w-screen bg-neutral-900">
+	{#if auth}
+		<Home credentials={auth} />
+	{:else}
+		<Login />
+	{/if}
 </main>
