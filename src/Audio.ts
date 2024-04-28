@@ -9,7 +9,7 @@ import tap2 from "./assets/audio/tap2.ogg";
 import tap3 from "./assets/audio/tap3.ogg";
 import tap4 from "./assets/audio/tap4.ogg";
 
-export default class Sound {
+export default class {
 	private alert: HTMLAudioElement;
 	private ambient: HTMLAudioElement;
 	private click: HTMLAudioElement[];
