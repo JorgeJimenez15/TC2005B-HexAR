@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { login } from "../api";
 	import { credentials } from "../stores";
-	import logo from "../assets/img/logo.png";
+	import logo from "../assets/image/logo.png";
 
 	let email: string;
 	let password: string;
@@ -11,6 +11,7 @@
 		const result = await login(email, password);
 
 		if (!result) {
+			window.audio.playAlert();
 			error = true;
 			return;
 		}

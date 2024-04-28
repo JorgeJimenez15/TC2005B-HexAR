@@ -27,6 +27,7 @@
 			'project'
 				? 'bg-neutral-700 text-neutral-100'
 				: 'text-neutral-400'}"
+			type="button"
 			on:click={() => type.set("project")}
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="mr-2 size-5">
@@ -46,6 +47,7 @@
 			'model'
 				? 'bg-neutral-700 text-neutral-100'
 				: 'text-neutral-400'}"
+			type="button"
 			on:click={() => type.set("model")}
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="mr-2 size-5">

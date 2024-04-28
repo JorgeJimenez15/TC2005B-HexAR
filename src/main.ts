@@ -1,8 +1,15 @@
 import "./style.css";
 import App from "./App.svelte";
+import Audio from "./Audio";
 
-const app = new App({
+declare global {
+	interface Window {
+		audio: Audio;
+	}
+}
+
+new App({
 	target: document.getElementById("app")!,
 });
 
-export default app;
+window.audio = new Audio();

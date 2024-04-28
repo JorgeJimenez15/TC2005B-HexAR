@@ -17,6 +17,7 @@ export default class {
 	public constructor(id: number) {
 		const { innerWidth, innerHeight, devicePixelRatio } = window;
 
+		// * Project Id
 		this.projectId = id;
 
 		// * Scene
