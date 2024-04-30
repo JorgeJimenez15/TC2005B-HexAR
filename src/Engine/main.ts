@@ -41,6 +41,7 @@ export default class {
 
 		// * XR Session
 		const controller = this.renderer.xr.getController(0);
+		
 
 		this.session = null;
 
@@ -68,6 +69,16 @@ export default class {
 
 			this.scene.add(object);
 		});
+		/*
+			controller.addEventListener("select", async () => {
+			console.log("Si jala");
+		})
+		
+		*/
+		controller.addEventListener("pinchend" ,async () => {
+			console.log("Si jala");
+		})
+		
 	}
 
 	public async start(): Promise<void> {
