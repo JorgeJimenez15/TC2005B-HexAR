@@ -1,5 +1,5 @@
 import { Scene, HemisphereLight, PerspectiveCamera, RingGeometry, MeshBasicMaterial, Mesh, WebGLRenderer } from "three";
-import Controller, { type Detail } from "./Controller";
+import Controller, { type ControllerDetail } from "./Controller";
 import loadOBJ from "./loaders/loadOBJ";
 import Overlay from "../Overlay.svelte";
 
@@ -79,7 +79,7 @@ export default class {
 		});
 
 		window.addEventListener("controller", (event) => {
-			const controllerEvent = event as CustomEvent<Detail>;
+			const controllerEvent = event as CustomEvent<ControllerDetail>;
 			console.table(controllerEvent.detail);
 		});
 

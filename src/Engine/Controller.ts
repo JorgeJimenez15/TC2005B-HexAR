@@ -1,6 +1,3 @@
-// AXIS_HORIZONTAL = 2,
-// AXIS_VERTICAL = 3,
-
 type Controller = { [key: number]: string };
 
 const BUTTON: Controller = {
@@ -24,7 +21,7 @@ type Memory = {
 	secondary: number;
 };
 
-export type Detail = {
+export type ControllerDetail = {
 	controller: "left" | "right";
 	button?: {
 		action: "start" | "stop";
@@ -73,9 +70,9 @@ export default class {
 		};
 	}
 
-	private dispatch(detail: Detail): void {
+	private dispatch(detail: ControllerDetail): void {
 		window.dispatchEvent(
-			new CustomEvent<Detail>("controller", {
+			new CustomEvent<ControllerDetail>("controller", {
 				detail,
 			}),
 		);
