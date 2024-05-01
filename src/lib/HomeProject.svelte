@@ -3,7 +3,6 @@
 	import { modal } from "../stores";
 	import { type Project, type Credentials, getProjects, deleteProject } from "../api";
 	import isARSupported from "../Engine/AR/isARSupported";
-	import Engine from "../Engine/main";
 
 	export let projects: Project[];
 	export let credentials: Credentials;
@@ -31,7 +30,7 @@
 	}
 
 	async function openOnClick(id: number) {
-		new Engine(id);
+		window.engine.start(id);
 	}
 </script>
 
@@ -76,7 +75,7 @@
 							class="rounded-md bg-curious-blue-500 px-2 py-0.5 text-neutral-100 transition-colors duration-500 hover:bg-curious-blue-700 {supported
 								? ''
 								: 'hidden'}"
-							type="reset"
+							type="submit"
 							on:click|preventDefault={() => openOnClick(project.id)}>Abrir</button
 						>
 					</td>

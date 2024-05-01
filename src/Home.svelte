@@ -1,32 +1,40 @@
 <script lang="ts">
+	import { onMount } from "svelte";
+	import { modal, type } from "./stores";
+	import type { Credentials, User, Project, Model } from "./api";
+	import { getUser, getProjects, getModels } from "./api";
+
 	import HomeModal from "./lib/HomeModal.svelte";
 	import HomeSidebar from "./lib/HomeSidebar.svelte";
 	import HomeProject from "./lib/HomeProject.svelte";
 	import HomeModel from "./lib/HomeModel.svelte";
-
-	import { onMount } from "svelte";
-	import type { Credentials, User, Project, Model } from "./api";
-	import { getUser, getProjects, getModels } from "./api";
-	import { modal, type } from "./stores";
 
 	export let credentials: Credentials;
 	let user: User;
 	let projects: Project[];
 	let models: Model[];
 
-	const hash = new URL(location.href).hash.slice(1, -1) as "project" | "model";
-
 	onMount(async () => {
 		const { email, token } = credentials;
 
+		const hash = new URL(location.href).hash.slice(1, -1) as "project" | "model";
 		type.set(hash || "project");
+
 		user = await getUser(email, token);
+
+		if (user.email === undefined) {
+			localStorage.removeItem("credentials");
+			location.reload();
+		}
+
 		projects = await getProjects(email, token);
 		models = await getModels();
 		modal.set({
 			show: false,
 			type: "project",
 		});
+
+		window.audio.playAmbient();
 	});
 </script>
 

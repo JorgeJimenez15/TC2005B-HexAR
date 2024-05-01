@@ -3,21 +3,26 @@ import loadOBJ from "./loaders/loadOBJ";
 import Overlay from "../Overlay.svelte";
 
 export default class {
-	private projectId: number;
+	private projectId: number | null;
 	private scene: Scene;
 	private camera: PerspectiveCamera;
 	private renderer: WebGLRenderer;
 	private session: XRSession | null;
+	private controller: {
+		left: XRInputSource["gamepad"] | null;
+		right: XRInputSource["gamepad"] | null;
+	};
 	private hitTest: {
 		reticle: Mesh;
 		requested: boolean;
 		source: XRHitTestSource | null;
 	};
 
-	public constructor(id: number) {
+	public constructor() {
 		const { innerWidth, innerHeight, devicePixelRatio } = window;
 
-		this.projectId = id;
+		// * Project Id
+		this.projectId = null;
 
 		// * Scene
 		this.scene = new Scene();
@@ -40,9 +45,16 @@ export default class {
 		this.renderer.setAnimationLoop(this.update.bind(this));
 
 		// * XR Session
-		const controller = this.renderer.xr.getController(0);
+		const controllerLeft = this.renderer.xr.getControllerGrip(0);
+		const controllerRight = this.renderer.xr.getControllerGrip(1);
 
 		this.session = null;
+
+		// * Input Source
+		this.controller = {
+			left: null,
+			right: null,
+		};
 
 		// * Hit Test
 		const geometry = new RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
@@ -60,24 +72,40 @@ export default class {
 
 		// * Event listeners
 		window.addEventListener("resize", this.onResize.bind(this));
-		controller.addEventListener("select", async () => {
-			const object = await loadOBJ("/models/Conveyor.obj");
 
-			this.hitTest.reticle.matrix.decompose(object.position, object.quaternion, object.scale);
-			object.rotation.y = this.camera.rotation.y;
-
-			this.scene.add(object);
+		controllerLeft.addEventListener("connected", (event) => {
+			console.log("Left controller connected");
+			this.controller.left = event.data.gamepad;
 		});
+
+		controllerRight.addEventListener("connected", (event) => {
+			console.log("Right controller connected");
+			this.controller.right = event.data.gamepad;
+		});
+
+		// Development
+		// controllerRight.addEventListener("select", async () => {
+		// 	const object = await loadOBJ("/models/Conveyor.obj");
+
+		// 	this.hitTest.reticle.matrix.decompose(object.position, object.quaternion, object.scale);
+		// 	object.rotation.y = this.camera.rotation.y;
+
+		// 	this.scene.add(object);
+		// });
+
+		// controllerRight.addEventListener("squeeze", (event) => {
+		// 	console.log("squeeze");
+		// 	console.table(event);
+		// });
 	}
 
-	public async start(): Promise<void> {
+	public async start(id: number): Promise<void> {
+		this.projectId = id;
+
 		const app = document.getElementById("app")!;
 		const overlay = document.createElement("div");
 		const component = new Overlay({
 			target: overlay,
-			props: {
-				engine: this,
-			},
 		});
 
 		document.body.appendChild(overlay);
@@ -124,8 +152,26 @@ export default class {
 		if (!frame) return;
 		if (!this.hitTest.requested) this.requestHitTest();
 
-		console.table(this.camera.rotation);
+		// * Controller
+		if (this.controller.left && this.controller.right) {
+			// * Left controller
+			this.controller.left.buttons.map((button, index) => {
+				if (button.pressed) console.log(`Left button ${index} was pressed`);
+			});
+			this.controller.left.axes.map((axis, index) => {
+				if (axis) console.log(`Left axis ${index}: value ${axis}`);
+			});
 
+			// * Right controller
+			this.controller.right.buttons.map((button, index) => {
+				if (button.pressed) console.log(`Right button ${index} was pressed`);
+			});
+			this.controller.right.axes.map((axis, index) => {
+				if (axis) console.log(`Right axis ${index}: value ${axis}`);
+			});
+		}
+
+		// * Hit Test
 		if (this.hitTest.source) {
 			const results = frame.getHitTestResults(this.hitTest.source);
 
