@@ -1,4 +1,5 @@
 import { Scene, HemisphereLight, PerspectiveCamera, RingGeometry, MeshBasicMaterial, Mesh, WebGLRenderer } from "three";
+import Controller, { type ControllerDetail } from "./Controller";
 import loadOBJ from "./loaders/loadOBJ";
 import Overlay from "../Overlay.svelte";
 
@@ -8,10 +9,7 @@ export default class {
 	private camera: PerspectiveCamera;
 	private renderer: WebGLRenderer;
 	private session: XRSession | null;
-	private controller: {
-		left: XRInputSource["gamepad"] | null;
-		right: XRInputSource["gamepad"] | null;
-	};
+	private controller: Controller;
 	private hitTest: {
 		reticle: Mesh;
 		requested: boolean;
@@ -45,16 +43,13 @@ export default class {
 		this.renderer.setAnimationLoop(this.update.bind(this));
 
 		// * XR Session
+		this.session = null;
+
+		// * Controller
 		const controllerLeft = this.renderer.xr.getControllerGrip(0);
 		const controllerRight = this.renderer.xr.getControllerGrip(1);
 
-		this.session = null;
-
-		// * Input Source
-		this.controller = {
-			left: null,
-			right: null,
-		};
+		this.controller = new Controller();
 
 		// * Hit Test
 		const geometry = new RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
@@ -75,12 +70,17 @@ export default class {
 
 		controllerLeft.addEventListener("connected", (event) => {
 			console.log("Left controller connected");
-			this.controller.left = event.data.gamepad;
+			this.controller.link("left", event.data.gamepad);
 		});
 
 		controllerRight.addEventListener("connected", (event) => {
 			console.log("Right controller connected");
-			this.controller.right = event.data.gamepad;
+			this.controller.link("right", event.data.gamepad);
+		});
+
+		window.addEventListener("controller", (event) => {
+			const controllerEvent = event as CustomEvent<ControllerDetail>;
+			console.table(controllerEvent.detail);
 		});
 
 		// Development
@@ -153,23 +153,7 @@ export default class {
 		if (!this.hitTest.requested) this.requestHitTest();
 
 		// * Controller
-		if (this.controller.left && this.controller.right) {
-			// * Left controller
-			this.controller.left.buttons.map((button, index) => {
-				if (button.pressed) console.log(`Left button ${index} was pressed`);
-			});
-			this.controller.left.axes.map((axis, index) => {
-				if (axis) console.log(`Left axis ${index}: value ${axis}`);
-			});
-
-			// * Right controller
-			this.controller.right.buttons.map((button, index) => {
-				if (button.pressed) console.log(`Right button ${index} was pressed`);
-			});
-			this.controller.right.axes.map((axis, index) => {
-				if (axis) console.log(`Right axis ${index}: value ${axis}`);
-			});
-		}
+		this.controller.update();
 
 		// * Hit Test
 		if (this.hitTest.source) {
