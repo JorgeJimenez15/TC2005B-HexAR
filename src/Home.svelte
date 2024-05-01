@@ -21,6 +21,12 @@
 		type.set(hash || "project");
 
 		user = await getUser(email, token);
+
+		if (user.email === undefined) {
+			localStorage.removeItem("credentials");
+			location.reload();
+		}
+
 		projects = await getProjects(email, token);
 		models = await getModels();
 		modal.set({

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const instance = axios.create({
-	baseURL: import.meta.env.VITE_API_URL,
+	baseURL: "/api",
 });
 
 export type Credentials = {
@@ -136,8 +136,3 @@ export async function createModel(name: string, token: string, file: File): Prom
 export async function deleteModel(id: number, token: string): Promise<void> {
 	await instance.delete(`/modelo/${id}/${token}`);
 }
-
-// * Probably will never use (xd)
-// export async function getModel(file: string): Promise<void> {
-// 	const {} = await instance.get(`/files/${file}`);
-// }
