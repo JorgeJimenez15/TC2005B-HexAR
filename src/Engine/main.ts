@@ -1,4 +1,18 @@
-import { Scene, HemisphereLight, PerspectiveCamera, RingGeometry, MeshBasicMaterial, Mesh, WebGLRenderer } from "three";
+import {
+	Scene,
+	HemisphereLight,
+	PerspectiveCamera,
+	RingGeometry,
+	MeshBasicMaterial,
+	MeshLambertMaterial,
+	Mesh,
+	WebGLRenderer,
+	Clock,
+	Matrix4,
+	MeshPhongMaterial,
+	Object3D,
+	PointLight,
+} from "three";
 import Controller, { type ControllerDetail } from "./Controller";
 import loadOBJ from "./loaders/loadOBJ";
 import Overlay from "../Overlay.svelte";
@@ -6,12 +20,18 @@ import Overlay from "../Overlay.svelte";
 export default class {
 	private projectId: number | null;
 	private scene: Scene;
+	private objects: Object3D[];
 	private camera: PerspectiveCamera;
 	private renderer: WebGLRenderer;
+	private time: {
+		clock: Clock;
+		delta: number;
+	};
 	private session: XRSession | null;
 	private controller: Controller;
 	private hitTest: {
 		reticle: Mesh;
+		rotation: number;
 		requested: boolean;
 		source: XRHitTestSource | null;
 	};
@@ -25,8 +45,15 @@ export default class {
 		// * Scene
 		this.scene = new Scene();
 
-		const light = new HemisphereLight(0xffffff, 0xbbbbff);
-		this.scene.add(light);
+		const hemisphereLight = new HemisphereLight(0xffffff, 0xbbbbff);
+		this.scene.add(hemisphereLight);
+
+		const pointLight = new PointLight(0xffffff);
+		pointLight.position.set(0, 10, 0);
+		this.scene.add(pointLight);
+
+		// * Objects
+		this.objects = [];
 
 		// * Perspective Camera
 		this.camera = new PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 20);
@@ -41,6 +68,12 @@ export default class {
 		this.renderer.setSize(innerWidth, innerHeight);
 		this.renderer.xr.enabled = true;
 		this.renderer.setAnimationLoop(this.update.bind(this));
+
+		// * Clock
+		this.time = {
+			clock: new Clock(),
+			delta: 0,
+		};
 
 		// * XR Session
 		this.session = null;
@@ -57,6 +90,7 @@ export default class {
 
 		this.hitTest = {
 			reticle: new Mesh(geometry, material),
+			rotation: 0,
 			requested: false,
 			source: null,
 		};
@@ -78,25 +112,39 @@ export default class {
 			this.controller.link("right", event.data.gamepad);
 		});
 
+		const ROTATION_UNIT = (2 * Math.PI) / 5;
+
 		window.addEventListener("controller", (event) => {
-			const controllerEvent = event as CustomEvent<ControllerDetail>;
-			console.table(controllerEvent.detail);
+			const { detail } = event as CustomEvent<ControllerDetail>;
+
+			// Rotate model
+			if (detail.controller === "right" && detail.axis && detail.axis.plane === "horizontal") {
+				console.log("rotate");
+				this.hitTest.rotation += detail.axis.value * ROTATION_UNIT * this.time.delta;
+			}
+
+			// Place model
+			if (
+				detail.controller === "right" &&
+				detail.button &&
+				detail.button.action === "start" &&
+				detail.button.type === "primary"
+			) {
+				const index = this.objects.length;
+				const model = this.hitTest.reticle.clone();
+				const material = new MeshPhongMaterial({
+					color: 0xe5e5e5,
+					shininess: 250,
+				});
+
+				model.traverse((child) => {
+					if (child instanceof Mesh) child.material = material;
+				});
+
+				this.objects.push(model);
+				this.scene.add(this.objects[index]);
+			}
 		});
-
-		// Development
-		// controllerRight.addEventListener("select", async () => {
-		// 	const object = await loadOBJ("/models/Conveyor.obj");
-
-		// 	this.hitTest.reticle.matrix.decompose(object.position, object.quaternion, object.scale);
-		// 	object.rotation.y = this.camera.rotation.y;
-
-		// 	this.scene.add(object);
-		// });
-
-		// controllerRight.addEventListener("squeeze", (event) => {
-		// 	console.log("squeeze");
-		// 	console.table(event);
-		// });
 	}
 
 	public async start(id: number): Promise<void> {
@@ -131,6 +179,28 @@ export default class {
 		if (this.session) await this.session.end();
 	}
 
+	public async selectModel(source: string): Promise<void> {
+		const model = await loadOBJ(`/api/files/${source}`);
+		const material = new MeshLambertMaterial({
+			color: 0xfafafa,
+			transparent: true,
+			opacity: 0.5,
+		});
+
+		model.traverse((child) => {
+			if (child instanceof Mesh) child.material = material;
+		});
+		model.rotation.y = this.camera.rotation.y;
+
+		this.scene.remove(this.hitTest.reticle);
+
+		// @ts-ignore
+		this.hitTest.reticle = model;
+		this.hitTest.reticle.matrixAutoUpdate = false;
+
+		this.scene.add(this.hitTest.reticle);
+	}
+
 	private requestHitTest(): void {
 		if (!this.session) return;
 
@@ -152,6 +222,9 @@ export default class {
 		if (!frame) return;
 		if (!this.hitTest.requested) this.requestHitTest();
 
+		// * Clock
+		this.time.delta = this.time.clock.getDelta();
+
 		// * Controller
 		this.controller.update();
 
@@ -159,11 +232,19 @@ export default class {
 		if (this.hitTest.source) {
 			const results = frame.getHitTestResults(this.hitTest.source);
 
-			if (results.length) {
+			if (this.hitTest.reticle && results.length) {
 				const referenceSpace = this.renderer.xr.getReferenceSpace()!;
 				const matrix = results[0].getPose(referenceSpace)!.transform.matrix;
 
 				this.hitTest.reticle.matrix.fromArray(matrix);
+
+				// Rotate model
+				const rotationMatrix = new Matrix4();
+
+				rotationMatrix.makeRotationY(this.hitTest.rotation);
+				this.hitTest.reticle.matrix.multiply(rotationMatrix);
+
+				this.hitTest.reticle.matrixWorldNeedsUpdate = true;
 				this.hitTest.reticle.visible = true;
 			} else {
 				this.hitTest.reticle.visible = false;

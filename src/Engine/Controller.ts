@@ -131,6 +131,7 @@ export default class {
 		}
 
 		// * Right controller
+		// * * Buttons
 		for (let index = 0; index < this.controller.right.gamepad.buttons.length; index++) {
 			if (this.controller.right.gamepad.buttons[index].pressed) {
 				// ? Is it being pressed for the first time?
